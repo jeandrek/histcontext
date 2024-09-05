@@ -26,11 +26,19 @@
 	  white-space: nowrap;
 	  text-overflow: clip;
       }
-      tr:hover {
-	  background-color: #555;
+      tbody > tr:hover {
+	  background-color: #eee;
       }
       tbody > tr.selected {
-	  background-color: #777;
+	  background-color: #ddd;
+      }
+      @media (prefers-color-scheme: dark) {
+	  tbody > tr:hover {
+	      background-color: #555;
+	  }
+	  tbody > tr.selected {
+	      background-color: #777;
+	  }
       }
       a {
 	  color: inherit;
