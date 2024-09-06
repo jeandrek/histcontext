@@ -9,7 +9,10 @@ browse your history.
 
 PRs welcome.  The code is a bit hacky and UI-centered...
 
-The latest version is **0.9.0**.
+## Installation
+The latest version is **0.9.0**.  Download from
+[releases](https://github.com/jeandrek/histcontext/releases) or
+[from AMO](https://addons.mozilla.org/en-US/firefox/addon/histcontext/).
 
 ## Current limitations
 * 4 hrs. before & after
