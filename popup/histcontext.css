@@ -1,0 +1,54 @@
+body {
+    font-family: system-ui;
+    font-size: small;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+	background-color: #333;
+	color: white;
+	color-scheme: dark;
+    }
+}
+
+input#search {
+    width: 100%;
+}
+
+table#results, table#context {
+    table-layout: fixed;
+    width: 750px;
+    border-collapse: collapse;
+}
+
+td {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: clip;
+}
+
+tbody > tr:hover {
+    background-color: #eee;
+}
+
+tbody > tr.selected {
+    background-color: #ddd;
+}
+
+@media (prefers-color-scheme: dark) {
+    tbody > tr:hover {
+	background-color: #555;
+    }
+    tbody > tr.selected {
+	background-color: #777;
+    }
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
