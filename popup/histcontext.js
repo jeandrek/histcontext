@@ -11,38 +11,86 @@ function backToResults() {
 }
 
 function viewContext(visit) {
+    function allVisitsInTimeframe(items, startTime, endTime, i, arr, cb) {
+	if (i == items.length) {
+	    cb(arr);
+	} else {
+	    browser.history.getVisits({url: items[i].url}).then(visits => {
+		arr.push([
+		    items[i],
+		    visits.filter(visit =>
+			(startTime <= visit.visitTime
+			 && visit.visitTime <= endTime))
+		]);
+		allVisitsInTimeframe(items, startTime, endTime, i + 1, arr, cb);
+	    });
+	}
+    }
+
     document.querySelector('#searchview').style.display = 'none';
     document.querySelector('#contextview').style.display = '';
     document.querySelector('#context > tbody').remove();
     var contextTbody = document.createElement('tbody');
+    var startTime = visit.visitTime - 4*60*60*1000;
+    var endTime = visit.visitTime + 4*60*60*1000;
     browser.history.search({
 	text: '',
-	startTime: visit.visitTime - 4*60*60*1000,
-	endTime: visit.visitTime + 4*60*60*1000,
+	startTime, endTime,
 	maxResults: 10000
     }).then(items => {
-	var start = 0;
-	var end = items.length - 1;
-	var middle = items.findIndex(item => item.id == visit.id);
+	allVisitsInTimeframe(items, startTime, endTime, 0, [], results => {
+	    var start = 0;
+	    var end = results.length - 1;
+	    var middle = results.findIndex(
+		//contextVisit => contextVisit.visitId == visit.visitId
+		x => x[0].id == visit.id
+	    );
 
-	if (items.length > 31) {
-	    start = Math.max(0, middle - 15);
-	    end = Math.min(items.length - 1, middle + 15);
-	}
-
-	console.log(start + ' ' + end + ' ' + items.length);
-	for (var i = start; i <= end; i++) {
-	    var item = items[i];
-	    var row = document.querySelector('#contextrow').content.cloneNode(true);
-	    var cells = row.querySelectorAll('td');
-	    cells[0].innerText = item.title;
-	    cells[1].appendChild(makeLink(item.url));
-	    cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
-	    if (i == middle) {
-		row.children[0].style.fontWeight = 'bold';
+	    if (results.length > 31) {
+		start = Math.max(0, middle - 15);
+		end = Math.min(results.length - 1, middle + 15);
 	    }
-	    contextTbody.appendChild(row);
-	}
+	    console.log(start + ' ' + end + ' ' + results.length);
+
+	    for (var i = start; i <= end; i++) {
+		var item = results[i][0];
+		var visits = results[i][1];
+		for (var contextVisit of visits) {
+		    var row = document.querySelector('#contextrow').content.cloneNode(true);
+		    var cells = row.querySelectorAll('td');
+		    cells[0].innerText = item.title;
+		    cells[1].appendChild(makeLink(item.url));
+		    cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
+		    if (i == middle) {
+			row.children[0].style.fontWeight = 'bold';
+		    }
+		    contextTbody.appendChild(row);
+		}
+	    }
+	});
+
+	// var start = 0;
+	// var end = items.length - 1;
+	// var middle = items.findIndex(item => item.id == visit.id);
+
+	// if (items.length > 31) {
+	//     start = Math.max(0, middle - 15);
+	//     end = Math.min(items.length - 1, middle + 15);
+	// }
+
+	// console.log(start + ' ' + end + ' ' + items.length);
+	// for (var i = start; i <= end; i++) {
+	//     var item = items[i];
+	//     var row = document.querySelector('#contextrow').content.cloneNode(true);
+	//     var cells = row.querySelectorAll('td');
+	//     cells[0].innerText = item.title;
+	//     cells[1].appendChild(makeLink(item.url));
+	//     cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
+	//     if (i == middle) {
+	// 	row.children[0].style.fontWeight = 'bold';
+	//     }
+	//     contextTbody.appendChild(row);
+	// }
     });
     document.querySelector('#context').appendChild(contextTbody);
 }
