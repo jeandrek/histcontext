@@ -10,39 +10,77 @@ function backToResults() {
     document.querySelector('#contextview').style.display = 'none';
 }
 
+function addContextRow(tbody, title, url, timeString, bold) {
+    var row = document.querySelector('#contextrow').content.cloneNode(true);
+    var cells = row.querySelectorAll('td');
+    cells[0].innerText = title;
+    cells[1].appendChild(makeLink(url));
+    cells[2].innerText = timeString;
+    if (bold) {
+	row.children[0].style.fontWeight = 'bold';
+    }
+    tbody.appendChild(row);
+}
+
 function viewContext(visit) {
+    function allVisitsInTimeframe(items, startTime, endTime, exclude,
+				  i, arr, cb) {
+	// assuming all history items in timeframe have a visit in timeframe
+	if (i == items.length) {
+	    arr.sort((a, b) => b[1].visitTime - a[1].visitTime);
+	    cb(arr);
+	} else {
+	    browser.history.getVisits({url: items[i].url}).then(visits => {
+		arr = arr.concat(visits.filter(visit =>
+		    (startTime <= visit.visitTime
+		     && visit.visitTime <= endTime
+		     && !exclude(visit))).map(visit => [items[i], visit]));
+		allVisitsInTimeframe(items, startTime, endTime, exclude,
+				     i + 1, arr, cb);
+	    });
+	}
+    }
+
     document.querySelector('#searchview').style.display = 'none';
     document.querySelector('#contextview').style.display = '';
     document.querySelector('#context > tbody').remove();
     var contextTbody = document.createElement('tbody');
+    var startTime = visit.visitTime - 4*60*60*1000;
+    var endTime = visit.visitTime + 4*60*60*1000;
     browser.history.search({
 	text: '',
-	startTime: visit.visitTime - 4*60*60*1000,
-	endTime: visit.visitTime + 4*60*60*1000,
+	startTime, endTime,
 	maxResults: 10000
     }).then(items => {
+	/* At present: shows all visits for 31 history items
+	 * (rather than n visits) */
 	var start = 0;
 	var end = items.length - 1;
-	var middle = items.findIndex(item => item.id == visit.id);
-
+	var middle = items.findIndex(
+	    //contextVisit => contextVisit.visitId == visit.visitId
+	    item => item.id == visit.id
+	);
 	if (items.length > 31) {
 	    start = Math.max(0, middle - 15);
 	    end = Math.min(items.length - 1, middle + 15);
 	}
+	allVisitsInTimeframe(items.slice(start, end+1), startTime, endTime,
+			     //visit => visit.transition == 'reload',
+			     visit => false,
+			     0, [], results => {
 
-	console.log(start + ' ' + end + ' ' + items.length);
-	for (var i = start; i <= end; i++) {
-	    var item = items[i];
-	    var row = document.querySelector('#contextrow').content.cloneNode(true);
-	    var cells = row.querySelectorAll('td');
-	    cells[0].innerText = item.title;
-	    cells[1].appendChild(makeLink(item.url));
-	    cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
-	    if (i == middle) {
-		row.children[0].style.fontWeight = 'bold';
+	    console.log(start + ' ' + end + ' ' + results.length);
+
+	    for (var result of results) {
+		var item = result[0];
+		var contextVisit = result[1];
+		addContextRow(
+		    contextTbody, item.title, item.url,
+		    new Date(contextVisit.visitTime).toLocaleString(),
+		    contextVisit.visitId == visit.visitId
+		);
 	    }
-	    contextTbody.appendChild(row);
-	}
+	});
     });
     document.querySelector('#context').appendChild(contextTbody);
 }
