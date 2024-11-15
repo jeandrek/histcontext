@@ -10,8 +10,21 @@ function backToResults() {
     document.querySelector('#contextview').style.display = 'none';
 }
 
+function addContextRow(tbody, title, url, timeString, bold) {
+    var row = document.querySelector('#contextrow').content.cloneNode(true);
+    var cells = row.querySelectorAll('td');
+    cells[0].innerText = title;
+    cells[1].appendChild(makeLink(url));
+    cells[2].innerText = timeString;
+    if (bold) {
+	row.children[0].style.fontWeight = 'bold';
+    }
+    tbody.appendChild(row);
+}
+
 function viewContext(visit) {
-    function allVisitsInTimeframe(items, startTime, endTime, i, arr, cb) {
+    function allVisitsInTimeframe(items, startTime, endTime, exclude,
+				  i, arr, cb) {
 	if (i == items.length) {
 	    cb(arr);
 	} else {
@@ -20,9 +33,11 @@ function viewContext(visit) {
 		    items[i],
 		    visits.filter(visit =>
 			(startTime <= visit.visitTime
-			 && visit.visitTime <= endTime))
+			 && visit.visitTime <= endTime
+			 && !exclude(visit)))
 		]);
-		allVisitsInTimeframe(items, startTime, endTime, i + 1, arr, cb);
+		allVisitsInTimeframe(items, startTime, endTime, exclude,
+				     i + 1, arr, cb);
 	    });
 	}
     }
@@ -38,7 +53,12 @@ function viewContext(visit) {
 	startTime, endTime,
 	maxResults: 10000
     }).then(items => {
-	allVisitsInTimeframe(items, startTime, endTime, 0, [], results => {
+	allVisitsInTimeframe(items, startTime, endTime,
+			     //visit => visit.transition == 'reload',
+			     visit => false,
+			     0, [], results => {
+	    /* At present: shows all visits for 31 history items
+	     * (rather than n visits) */
 	    var start = 0;
 	    var end = results.length - 1;
 	    var middle = results.findIndex(
@@ -56,41 +76,21 @@ function viewContext(visit) {
 		var item = results[i][0];
 		var visits = results[i][1];
 		for (var contextVisit of visits) {
-		    var row = document.querySelector('#contextrow').content.cloneNode(true);
-		    var cells = row.querySelectorAll('td');
-		    cells[0].innerText = item.title;
-		    cells[1].appendChild(makeLink(item.url));
-		    cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
-		    if (i == middle) {
-			row.children[0].style.fontWeight = 'bold';
-		    }
-		    contextTbody.appendChild(row);
+		    addContextRow(
+			contextTbody, item.title, item.url,
+			new Date(contextVisit.visitTime).toLocaleString(),
+			contextVisit.visitId == visit.visitId
+		    );
+		}
+		if (visits.length == 0) {
+		    addContextRow(
+			contextTbody, item.title, item.url,
+			'???' + new Date(item.lastVisitTime).toLocaleString(),
+			i == middle
+		    );
 		}
 	    }
 	});
-
-	// var start = 0;
-	// var end = items.length - 1;
-	// var middle = items.findIndex(item => item.id == visit.id);
-
-	// if (items.length > 31) {
-	//     start = Math.max(0, middle - 15);
-	//     end = Math.min(items.length - 1, middle + 15);
-	// }
-
-	// console.log(start + ' ' + end + ' ' + items.length);
-	// for (var i = start; i <= end; i++) {
-	//     var item = items[i];
-	//     var row = document.querySelector('#contextrow').content.cloneNode(true);
-	//     var cells = row.querySelectorAll('td');
-	//     cells[0].innerText = item.title;
-	//     cells[1].appendChild(makeLink(item.url));
-	//     cells[2].innerText = new Date(item.lastVisitTime).toLocaleString();
-	//     if (i == middle) {
-	// 	row.children[0].style.fontWeight = 'bold';
-	//     }
-	//     contextTbody.appendChild(row);
-	// }
     });
     document.querySelector('#context').appendChild(contextTbody);
 }
