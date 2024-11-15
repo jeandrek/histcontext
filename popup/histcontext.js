@@ -10,10 +10,25 @@ function backToResults() {
     document.querySelector('#contextview').style.display = 'none';
 }
 
+function checkIfReferrer(visit, item, cb) {
+    browser.history.getVisits({url: item.url}).then(visits => {
+	for (var candidate of visits) {
+	    if (candidate.visitId == visit.referringVisitId) {
+		cb(item.url);
+	    }
+	}
+    });
+}
+
 function viewContext(visit) {
     document.querySelector('#searchview').style.display = 'none';
     document.querySelector('#contextview').style.display = '';
     document.querySelector('#context > tbody').remove();
+
+    var detailsRow = document.querySelectorAll('#details tr')[1].querySelectorAll('td');
+    detailsRow[0].innerText = visit.transition;
+    detailsRow[1].innerText = '';
+
     var contextTbody = document.createElement('tbody');
     browser.history.search({
 	text: '',
@@ -42,6 +57,9 @@ function viewContext(visit) {
 		row.children[0].style.fontWeight = 'bold';
 	    }
 	    contextTbody.appendChild(row);
+	    checkIfReferrer(visit, item, url => {
+		detailsRow[1].innerText = url;
+	    });
 	}
     });
     document.querySelector('#context').appendChild(contextTbody);
